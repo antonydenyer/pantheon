@@ -46,7 +46,8 @@ public class LocalNodeIsProposerTest {
       Clock.fixed(Instant.ofEpochSecond(blockTimeStamp), ZoneId.systemDefault());
 
   // Local node will propose the first block
-  private final TestContext context = TestContextFactory.createTestEnvironment(4, 1, fixedClock);
+  private final TestContext context =
+      TestContextFactory.createTestEnvironmentWithoutGossip(4, 1, fixedClock);
   private final ConsensusRoundIdentifier roundId = new ConsensusRoundIdentifier(1, 0);
   private final RoundSpecificNodeRoles roles = context.getRoundSpecificRoles(roundId);
 

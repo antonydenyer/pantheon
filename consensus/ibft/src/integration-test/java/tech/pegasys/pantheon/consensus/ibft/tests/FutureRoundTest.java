@@ -47,7 +47,7 @@ public class FutureRoundTest {
 
   // Local node is not the first proposer for the current round.
   private final TestContext context =
-      TestContextFactory.createTestEnvironment(NETWORK_SIZE, 0, fixedClock);
+      TestContextFactory.createTestEnvironmentWithoutGossip(NETWORK_SIZE, 0, fixedClock);
 
   private final ConsensusRoundIdentifier roundId = new ConsensusRoundIdentifier(1, 0);
   private final RoundSpecificNodeRoles roles = context.getRoundSpecificRoles(roundId);
@@ -81,7 +81,7 @@ public class FutureRoundTest {
       futureRoles.getNonProposingPeer(i).injectCommit(futureRoundId, futureBlock.getHash());
     }
 
-    // inject a prepare and a commit from a subsequent round, and ensure no transmissions are
+    // inject a prepare and a commit from a subsequent round, and ensure nojbh n transmissions are
     // created
     subsequentRoles.getNonProposingPeer(1).injectPrepare(subsequentRoundId, futureBlock.getHash());
     subsequentRoles.getNonProposingPeer(1).injectCommit(subsequentRoundId, futureBlock.getHash());

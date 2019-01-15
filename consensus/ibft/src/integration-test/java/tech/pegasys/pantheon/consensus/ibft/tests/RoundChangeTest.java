@@ -55,7 +55,7 @@ public class RoundChangeTest {
   private final int NETWORK_SIZE = 5;
 
   private final TestContext context =
-      TestContextFactory.createTestEnvironment(NETWORK_SIZE, 0, fixedClock);
+      TestContextFactory.createTestEnvironmentWithoutGossip(NETWORK_SIZE, 0, fixedClock);
   private final ConsensusRoundIdentifier roundId = new ConsensusRoundIdentifier(1, 0);
   private final RoundSpecificNodeRoles roles = context.getRoundSpecificRoles(roundId);
 

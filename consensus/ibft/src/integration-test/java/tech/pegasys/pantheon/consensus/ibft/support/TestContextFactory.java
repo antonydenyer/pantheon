@@ -106,15 +106,27 @@ public class TestContextFactory {
 
   public static TestContext createTestEnvWithArbitraryClock(
       final int validatorCount, final int indexOfFirstLocallyProposedBlock) {
-    return createTestEnvironment(
+    return createTestEnvironmentWithoutGossip(
         validatorCount,
         indexOfFirstLocallyProposedBlock,
         Clock.fixed(Instant.MIN, ZoneId.of("UTC")));
   }
 
-  public static TestContext createTestEnvironment(
+  public static TestContext createTestEnvWithGossip(
       final int validatorCount, final int indexOfFirstLocallyProposedBlock, final Clock clock) {
+    return createTestEnvironment(validatorCount, indexOfFirstLocallyProposedBlock, clock, true);
+  }
 
+  public static TestContext createTestEnvironmentWithoutGossip(
+      final int validatorCount, final int indexOfFirstLocallyProposedBlock, final Clock clock) {
+    return createTestEnvironment(validatorCount, indexOfFirstLocallyProposedBlock, clock, false);
+  }
+
+  private static TestContext createTestEnvironment(
+      final int validatorCount,
+      final int indexOfFirstLocallyProposedBlock,
+      final Clock clock,
+      final boolean useGossip) {
     final NetworkLayout networkNodes =
         NetworkLayout.createNetworkLayout(validatorCount, indexOfFirstLocallyProposedBlock);
 
@@ -127,8 +139,11 @@ public class TestContextFactory {
     // Use a stubbed version of the multicaster, to prevent creating PeerConnections etc.
     final StubIbftMulticaster stubbedNetworkPeers = new StubIbftMulticaster();
 
+    final IbftGossip gossiper =
+        useGossip ? new IbftGossip(stubbedNetworkPeers) : mock(IbftGossip.class);
+
     final ControllerAndState controllerAndState =
-        createControllerAndFinalState(blockChain, stubbedNetworkPeers, nodeKeys, clock);
+        createControllerAndFinalState(blockChain, stubbedNetworkPeers, nodeKeys, clock, gossiper);
 
     // Add each networkNode to the Multicaster (such that each can receive msgs from local node).
     // NOTE: the remotePeers needs to be ordered based on Address (as this is used to determine
@@ -188,7 +203,8 @@ public class TestContextFactory {
       final MutableBlockchain blockChain,
       final StubIbftMulticaster stubbedNetworkPeers,
       final KeyPair nodeKeys,
-      final Clock clock) {
+      final Clock clock,
+      final IbftGossip gossiper) {
 
     final WorldStateArchive worldStateArchive = createInMemoryWorldStateArchive();
 
@@ -257,9 +273,6 @@ public class TestContextFactory {
 
     final MessageValidatorFactory messageValidatorFactory =
         new MessageValidatorFactory(proposerSelector, blockHeaderValidator, protocolContext);
-
-    // Disable Gossiping for integration tests.
-    final IbftGossip gossiper = mock(IbftGossip.class);
 
     final Subscribers<MinedBlockObserver> minedBlockObservers = new Subscribers<>();
 

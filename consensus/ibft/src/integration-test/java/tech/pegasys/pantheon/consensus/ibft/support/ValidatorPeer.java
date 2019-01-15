@@ -39,6 +39,7 @@ import tech.pegasys.pantheon.ethereum.core.Hash;
 import tech.pegasys.pantheon.ethereum.p2p.api.MessageData;
 import tech.pegasys.pantheon.ethereum.p2p.api.PeerConnection;
 import tech.pegasys.pantheon.ethereum.p2p.wire.DefaultMessage;
+import tech.pegasys.pantheon.util.bytes.BytesValue;
 
 import java.util.Collections;
 import java.util.List;
@@ -52,7 +53,7 @@ public class ValidatorPeer {
   private final Address nodeAddress;
   private final KeyPair nodeKeys;
   private final MessageFactory messageFactory;
-  private final PeerConnection peerConnection = new StubbedPeerConnection();
+  private final PeerConnection peerConnection;
   private final List<MessageData> receivedMessages = Lists.newArrayList();
 
   private final IbftController localNodeController;
@@ -65,6 +66,8 @@ public class ValidatorPeer {
     this.nodeAddress = nodeParams.getAddress();
     this.messageFactory = messageFactory;
     this.localNodeController = localNodeController;
+    final BytesValue nodeId = nodeKeys.getPublicKey().getEncodedBytes();
+    this.peerConnection = new StubbedPeerConnection(nodeId);
   }
 
   public Address getNodeAddress() {
