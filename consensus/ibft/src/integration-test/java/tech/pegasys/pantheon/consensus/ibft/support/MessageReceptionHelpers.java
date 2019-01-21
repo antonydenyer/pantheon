@@ -28,6 +28,7 @@ import tech.pegasys.pantheon.ethereum.p2p.api.MessageData;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
+import java.util.stream.Collectors;
 
 public class MessageReceptionHelpers {
 
@@ -39,21 +40,11 @@ public class MessageReceptionHelpers {
   public static void assertPeersReceivedExactly(
       final Collection<ValidatorPeer> allPeers, final SignedData<? extends Payload>... msgs) {
     allPeers.forEach(n -> assertThat(n.getReceivedMessages().size()).isEqualTo(msgs.length));
-    assertPeerMessages(allPeers, msgs);
-  }
-
-  @SafeVarargs
-  public static void assertPeersReceivedMessages(
-      final Collection<ValidatorPeer> allPeers, final SignedData<? extends Payload>... msgs) {
     allPeers.forEach(
         n -> assertThat(n.getReceivedMessages().size()).isGreaterThanOrEqualTo(msgs.length));
-    assertPeerMessages(allPeers, msgs);
-  }
-
-  private static void assertPeerMessages(
-      final Collection<ValidatorPeer> allPeers, final SignedData<? extends Payload>[] msgs) {
     List<SignedData<? extends Payload>> msgList = Arrays.asList(msgs);
 
+    // contain the messages but we don't care about the order?
     for (int i = 0; i < msgList.size(); i++) {
       final int index = i;
       final SignedData<? extends Payload> msg = msgList.get(index);
@@ -67,12 +58,33 @@ public class MessageReceptionHelpers {
     allPeers.forEach(ValidatorPeer::clearReceivedMessages);
   }
 
+  @SafeVarargs
+  public static void assertPeersContainsReceivedMessages(
+      final Collection<ValidatorPeer> allPeers, final SignedData<? extends Payload>... msgs) {
+    List<SignedData<? extends Payload>> msgList = Arrays.asList(msgs);
+    allPeers.forEach(
+        node -> {
+          final List<SignedData<?>> rxMsgs =
+              node.getReceivedMessages()
+                  .stream()
+                  .map(MessageReceptionHelpers::actualPayload)
+                  .collect(Collectors.toList());
+          assertThat(rxMsgs).containsAll(msgList);
+        });
+    allPeers.forEach(ValidatorPeer::clearReceivedMessages);
+  }
+
   public static void messageMatchesExpected(
       final MessageData actual, final SignedData<? extends Payload> signedExpectedPayload) {
-    final Payload expectedPayload = signedExpectedPayload.getPayload();
+    SignedData<?> actualSignedPayload = actualPayload(actual);
+    assertThat(signedExpectedPayload)
+        .isEqualToComparingFieldByFieldRecursively(actualSignedPayload);
+  }
+
+  private static SignedData<?> actualPayload(final MessageData actual) {
     SignedData<?> actualSignedPayload = null;
 
-    switch (expectedPayload.getMessageType()) {
+    switch (actual.getCode()) {
       case IbftV2.PROPOSAL:
         actualSignedPayload = ProposalMessageData.fromMessageData(actual).decode();
         break;
@@ -92,7 +104,6 @@ public class MessageReceptionHelpers {
         fail("Illegal IBFTV2 message type.");
         break;
     }
-    assertThat(signedExpectedPayload)
-        .isEqualToComparingFieldByFieldRecursively(actualSignedPayload);
+    return actualSignedPayload;
   }
 }
