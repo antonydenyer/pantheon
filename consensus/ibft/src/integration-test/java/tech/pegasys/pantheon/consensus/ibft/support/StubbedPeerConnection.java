@@ -32,9 +32,8 @@ public class StubbedPeerConnection implements PeerConnection {
   }
 
   @Override
-  public void send(final Capability capability, final MessageData message) throws PeerNotConnected {
-    System.out.println("sent message" + message);
-  }
+  public void send(final Capability capability, final MessageData message)
+      throws PeerNotConnected {}
 
   @Override
   public Set<Capability> getAgreedCapabilities() {
