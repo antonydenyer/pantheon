@@ -19,10 +19,10 @@ import static tech.pegasys.pantheon.consensus.ibft.support.TestHelpers.injectEmp
 
 import tech.pegasys.pantheon.consensus.ibft.ConsensusRoundIdentifier;
 import tech.pegasys.pantheon.consensus.ibft.IbftHelpers;
-import tech.pegasys.pantheon.consensus.ibft.ibftmessagedata.CommitPayload;
-import tech.pegasys.pantheon.consensus.ibft.ibftmessagedata.MessageFactory;
-import tech.pegasys.pantheon.consensus.ibft.ibftmessagedata.PreparePayload;
-import tech.pegasys.pantheon.consensus.ibft.ibftmessagedata.SignedData;
+import tech.pegasys.pantheon.consensus.ibft.payload.CommitPayload;
+import tech.pegasys.pantheon.consensus.ibft.payload.MessageFactory;
+import tech.pegasys.pantheon.consensus.ibft.payload.PreparePayload;
+import tech.pegasys.pantheon.consensus.ibft.payload.SignedData;
 import tech.pegasys.pantheon.consensus.ibft.support.RoundSpecificNodeRoles;
 import tech.pegasys.pantheon.consensus.ibft.support.TestContext;
 import tech.pegasys.pantheon.consensus.ibft.support.TestContextFactory;
@@ -64,7 +64,8 @@ public class FutureRoundTest {
 
   @Test
   public void messagesForFutureRoundAreNotActionedUntilRoundIsActive() {
-    final Block futureBlock = context.createBlockForProposal(futureRoundId.getRoundNumber(), 60);
+    final Block futureBlock =
+        context.createBlockForProposalFromChainHead(futureRoundId.getRoundNumber(), 60);
     final int quorum = IbftHelpers.calculateRequiredValidatorQuorum(NETWORK_SIZE);
     final ConsensusRoundIdentifier subsequentRoundId = new ConsensusRoundIdentifier(1, 6);
     final RoundSpecificNodeRoles subsequentRoles = context.getRoundSpecificRoles(subsequentRoundId);
@@ -117,8 +118,10 @@ public class FutureRoundTest {
 
   @Test
   public void priorRoundsCannotBeCompletedAfterReceptionOfNewRound() {
-    final Block initialBlock = context.createBlockForProposal(roundId.getRoundNumber(), 30);
-    final Block futureBlock = context.createBlockForProposal(futureRoundId.getRoundNumber(), 60);
+    final Block initialBlock =
+        context.createBlockForProposalFromChainHead(roundId.getRoundNumber(), 30);
+    final Block futureBlock =
+        context.createBlockForProposalFromChainHead(futureRoundId.getRoundNumber(), 60);
 
     roles.getProposer().injectProposal(roundId, initialBlock);
     for (final ValidatorPeer peer : roles.getNonProposingPeers()) {

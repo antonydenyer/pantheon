@@ -15,20 +15,20 @@ package tech.pegasys.pantheon.consensus.ibft.support;
 import tech.pegasys.pantheon.consensus.ibft.ConsensusRoundIdentifier;
 import tech.pegasys.pantheon.consensus.ibft.ibftevent.IbftEvents;
 import tech.pegasys.pantheon.consensus.ibft.ibftevent.IbftReceivedMessageEvent;
-import tech.pegasys.pantheon.consensus.ibft.ibftmessage.CommitMessageData;
-import tech.pegasys.pantheon.consensus.ibft.ibftmessage.NewRoundMessageData;
-import tech.pegasys.pantheon.consensus.ibft.ibftmessage.PrepareMessageData;
-import tech.pegasys.pantheon.consensus.ibft.ibftmessage.ProposalMessageData;
-import tech.pegasys.pantheon.consensus.ibft.ibftmessage.RoundChangeMessageData;
-import tech.pegasys.pantheon.consensus.ibft.ibftmessagedata.CommitPayload;
-import tech.pegasys.pantheon.consensus.ibft.ibftmessagedata.MessageFactory;
-import tech.pegasys.pantheon.consensus.ibft.ibftmessagedata.NewRoundPayload;
-import tech.pegasys.pantheon.consensus.ibft.ibftmessagedata.PreparePayload;
-import tech.pegasys.pantheon.consensus.ibft.ibftmessagedata.PreparedCertificate;
-import tech.pegasys.pantheon.consensus.ibft.ibftmessagedata.ProposalPayload;
-import tech.pegasys.pantheon.consensus.ibft.ibftmessagedata.RoundChangeCertificate;
-import tech.pegasys.pantheon.consensus.ibft.ibftmessagedata.RoundChangePayload;
-import tech.pegasys.pantheon.consensus.ibft.ibftmessagedata.SignedData;
+import tech.pegasys.pantheon.consensus.ibft.messagedata.CommitMessageData;
+import tech.pegasys.pantheon.consensus.ibft.messagedata.NewRoundMessageData;
+import tech.pegasys.pantheon.consensus.ibft.messagedata.PrepareMessageData;
+import tech.pegasys.pantheon.consensus.ibft.messagedata.ProposalMessageData;
+import tech.pegasys.pantheon.consensus.ibft.messagedata.RoundChangeMessageData;
+import tech.pegasys.pantheon.consensus.ibft.payload.CommitPayload;
+import tech.pegasys.pantheon.consensus.ibft.payload.MessageFactory;
+import tech.pegasys.pantheon.consensus.ibft.payload.NewRoundPayload;
+import tech.pegasys.pantheon.consensus.ibft.payload.PreparePayload;
+import tech.pegasys.pantheon.consensus.ibft.payload.PreparedCertificate;
+import tech.pegasys.pantheon.consensus.ibft.payload.ProposalPayload;
+import tech.pegasys.pantheon.consensus.ibft.payload.RoundChangeCertificate;
+import tech.pegasys.pantheon.consensus.ibft.payload.RoundChangePayload;
+import tech.pegasys.pantheon.consensus.ibft.payload.SignedData;
 import tech.pegasys.pantheon.consensus.ibft.statemachine.IbftController;
 import tech.pegasys.pantheon.crypto.SECP256K1;
 import tech.pegasys.pantheon.crypto.SECP256K1.KeyPair;
@@ -91,9 +91,13 @@ public class ValidatorPeer {
     return payload;
   }
 
+  public Signature getBlockSignature(final Hash digest) {
+    return SECP256K1.sign(digest, nodeKeys);
+  }
+
   public SignedData<CommitPayload> injectCommit(
       final ConsensusRoundIdentifier rId, final Hash digest) {
-    final Signature commitSeal = SECP256K1.sign(digest, nodeKeys);
+    final Signature commitSeal = getBlockSignature(digest);
     final SignedData<CommitPayload> payload =
         messageFactory.createSignedCommitPayload(rId, digest, commitSeal);
     injectMessage(CommitMessageData.create(payload));

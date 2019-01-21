@@ -20,14 +20,14 @@ import tech.pegasys.pantheon.consensus.ibft.ibftevent.BlockTimerExpiry;
 import tech.pegasys.pantheon.consensus.ibft.ibftevent.IbftReceivedMessageEvent;
 import tech.pegasys.pantheon.consensus.ibft.ibftevent.NewChainHead;
 import tech.pegasys.pantheon.consensus.ibft.ibftevent.RoundExpiry;
-import tech.pegasys.pantheon.consensus.ibft.ibftmessage.CommitMessageData;
-import tech.pegasys.pantheon.consensus.ibft.ibftmessage.IbftV2;
-import tech.pegasys.pantheon.consensus.ibft.ibftmessage.NewRoundMessageData;
-import tech.pegasys.pantheon.consensus.ibft.ibftmessage.PrepareMessageData;
-import tech.pegasys.pantheon.consensus.ibft.ibftmessage.ProposalMessageData;
-import tech.pegasys.pantheon.consensus.ibft.ibftmessage.RoundChangeMessageData;
-import tech.pegasys.pantheon.consensus.ibft.ibftmessagedata.Payload;
-import tech.pegasys.pantheon.consensus.ibft.ibftmessagedata.SignedData;
+import tech.pegasys.pantheon.consensus.ibft.messagedata.CommitMessageData;
+import tech.pegasys.pantheon.consensus.ibft.messagedata.IbftV2;
+import tech.pegasys.pantheon.consensus.ibft.messagedata.NewRoundMessageData;
+import tech.pegasys.pantheon.consensus.ibft.messagedata.PrepareMessageData;
+import tech.pegasys.pantheon.consensus.ibft.messagedata.ProposalMessageData;
+import tech.pegasys.pantheon.consensus.ibft.messagedata.RoundChangeMessageData;
+import tech.pegasys.pantheon.consensus.ibft.payload.Payload;
+import tech.pegasys.pantheon.consensus.ibft.payload.SignedData;
 import tech.pegasys.pantheon.ethereum.chain.Blockchain;
 import tech.pegasys.pantheon.ethereum.core.BlockHeader;
 import tech.pegasys.pantheon.ethereum.p2p.api.Message;
@@ -44,6 +44,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 public class IbftController {
+
   private static final Logger LOG = LogManager.getLogger();
   private final Blockchain blockchain;
   private final IbftFinalState ibftFinalState;
@@ -61,7 +62,7 @@ public class IbftController {
         ibftFinalState,
         ibftBlockHeightManagerFactory,
         Maps.newHashMap(),
-        new IbftGossip(ibftFinalState.getPeers()));
+        new IbftGossip(ibftFinalState.getValidatorMulticaster()));
   }
 
   @VisibleForTesting
@@ -141,7 +142,22 @@ public class IbftController {
   }
 
   public void handleNewBlockEvent(final NewChainHead newChainHead) {
-    startNewHeightManager(newChainHead.getNewChainHeadHeader());
+    final BlockHeader newBlockHeader = newChainHead.getNewChainHeadHeader();
+    final BlockHeader currentMiningParent = currentHeightManager.getParentBlockHeader();
+    if (newBlockHeader.getNumber() < currentMiningParent.getNumber()) {
+      LOG.info("Discarding NewChainHead event, was for previous block height.");
+      return;
+    }
+
+    if (newBlockHeader.getNumber() == currentMiningParent.getNumber()) {
+      if (newBlockHeader.getHash().equals(currentMiningParent.getHash())) {
+        LOG.info("Discarding duplicate NewChainHead event.");
+      } else {
+        LOG.error("Subsequent NewChainHead event at same block height indicates chain fork.");
+      }
+      return;
+    }
+    startNewHeightManager(newBlockHeader);
   }
 
   public void handleBlockTimerExpiry(final BlockTimerExpiry blockTimerExpiry) {

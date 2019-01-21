@@ -13,15 +13,15 @@
 package tech.pegasys.pantheon.consensus.ibft.support;
 
 import tech.pegasys.pantheon.consensus.ibft.ConsensusRoundIdentifier;
-import tech.pegasys.pantheon.consensus.ibft.ibftmessagedata.MessageFactory;
+import tech.pegasys.pantheon.consensus.ibft.payload.MessageFactory;
 import tech.pegasys.pantheon.consensus.ibft.statemachine.IbftController;
 import tech.pegasys.pantheon.consensus.ibft.statemachine.IbftFinalState;
 import tech.pegasys.pantheon.ethereum.chain.MutableBlockchain;
 import tech.pegasys.pantheon.ethereum.core.Address;
 import tech.pegasys.pantheon.ethereum.core.Block;
+import tech.pegasys.pantheon.ethereum.core.BlockHeader;
 
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 
@@ -51,10 +51,6 @@ public class TestContext {
     this.finalState = finalState;
   }
 
-  public Collection<ValidatorPeer> getRemotePeers() {
-    return remotePeers.values();
-  }
-
   public MutableBlockchain getBlockchain() {
     return blockchain;
   }
@@ -67,11 +63,13 @@ public class TestContext {
     return finalState.getMessageFactory();
   }
 
-  public Block createBlockForProposal(final int round, final long timestamp) {
-    return finalState
-        .getBlockCreatorFactory()
-        .create(blockchain.getChainHeadHeader(), round)
-        .createBlock(timestamp);
+  public Block createBlockForProposal(
+      final BlockHeader parent, final int round, final long timestamp) {
+    return finalState.getBlockCreatorFactory().create(parent, round).createBlock(timestamp);
+  }
+
+  public Block createBlockForProposalFromChainHead(final int round, final long timestamp) {
+    return createBlockForProposal(blockchain.getChainHeadHeader(), round, timestamp);
   }
 
   public RoundSpecificNodeRoles getRoundSpecificRoles(final ConsensusRoundIdentifier roundId) {
