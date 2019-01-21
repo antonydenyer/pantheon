@@ -40,11 +40,9 @@ public class MessageReceptionHelpers {
   public static void assertPeersReceivedExactly(
       final Collection<ValidatorPeer> allPeers, final SignedData<? extends Payload>... msgs) {
     allPeers.forEach(n -> assertThat(n.getReceivedMessages().size()).isEqualTo(msgs.length));
-    allPeers.forEach(
-        n -> assertThat(n.getReceivedMessages().size()).isGreaterThanOrEqualTo(msgs.length));
+
     List<SignedData<? extends Payload>> msgList = Arrays.asList(msgs);
 
-    // contain the messages but we don't care about the order?
     for (int i = 0; i < msgList.size(); i++) {
       final int index = i;
       final SignedData<? extends Payload> msg = msgList.get(index);
@@ -61,13 +59,13 @@ public class MessageReceptionHelpers {
   @SafeVarargs
   public static void assertPeersContainsReceivedMessages(
       final Collection<ValidatorPeer> allPeers, final SignedData<? extends Payload>... msgs) {
-    List<SignedData<? extends Payload>> msgList = Arrays.asList(msgs);
+    final List<SignedData<? extends Payload>> msgList = Arrays.asList(msgs);
     allPeers.forEach(
         node -> {
           final List<SignedData<?>> rxMsgs =
               node.getReceivedMessages()
                   .stream()
-                  .map(MessageReceptionHelpers::actualPayload)
+                  .map(MessageReceptionHelpers::payloadFromMessageData)
                   .collect(Collectors.toList());
           assertThat(rxMsgs).containsAll(msgList);
         });
@@ -76,12 +74,12 @@ public class MessageReceptionHelpers {
 
   public static void messageMatchesExpected(
       final MessageData actual, final SignedData<? extends Payload> signedExpectedPayload) {
-    SignedData<?> actualSignedPayload = actualPayload(actual);
+    final SignedData<?> actualSignedPayload = payloadFromMessageData(actual);
     assertThat(signedExpectedPayload)
         .isEqualToComparingFieldByFieldRecursively(actualSignedPayload);
   }
 
-  private static SignedData<?> actualPayload(final MessageData actual) {
+  private static SignedData<?> payloadFromMessageData(final MessageData actual) {
     SignedData<?> actualSignedPayload = null;
 
     switch (actual.getCode()) {
