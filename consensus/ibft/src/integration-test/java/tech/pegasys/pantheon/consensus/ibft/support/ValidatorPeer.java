@@ -144,4 +144,8 @@ public class ValidatorPeer {
   public MessageFactory getMessageFactory() {
     return messageFactory;
   }
+
+  public KeyPair getNodeKeyPair() {
+    return nodeKeys;
+  }
 }

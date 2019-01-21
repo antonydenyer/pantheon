@@ -39,7 +39,19 @@ public class MessageReceptionHelpers {
   public static void assertPeersReceivedExactly(
       final Collection<ValidatorPeer> allPeers, final SignedData<? extends Payload>... msgs) {
     allPeers.forEach(n -> assertThat(n.getReceivedMessages().size()).isEqualTo(msgs.length));
+    assertPeerMessages(allPeers, msgs);
+  }
 
+  @SafeVarargs
+  public static void assertPeersReceivedMessages(
+      final Collection<ValidatorPeer> allPeers, final SignedData<? extends Payload>... msgs) {
+    allPeers.forEach(
+        n -> assertThat(n.getReceivedMessages().size()).isGreaterThanOrEqualTo(msgs.length));
+    assertPeerMessages(allPeers, msgs);
+  }
+
+  private static void assertPeerMessages(
+      final Collection<ValidatorPeer> allPeers, final SignedData<? extends Payload>[] msgs) {
     List<SignedData<? extends Payload>> msgList = Arrays.asList(msgs);
 
     for (int i = 0; i < msgList.size(); i++) {
@@ -52,7 +64,7 @@ public class MessageReceptionHelpers {
             messageMatchesExpected(rxMsgData, msg);
           });
     }
-    allPeers.forEach(p -> p.clearReceivedMessages());
+    allPeers.forEach(ValidatorPeer::clearReceivedMessages);
   }
 
   public static void messageMatchesExpected(

@@ -109,7 +109,7 @@ public class TestContextFactory {
         Clock.fixed(Instant.MIN, ZoneId.of("UTC")));
   }
 
-  public static TestContext createTestEnvWithGossip(
+  public static TestContext createTestEnvironmentWithGossip(
       final int validatorCount, final int indexOfFirstLocallyProposedBlock, final Clock clock) {
     return createTestEnvironment(validatorCount, indexOfFirstLocallyProposedBlock, clock, true);
   }
