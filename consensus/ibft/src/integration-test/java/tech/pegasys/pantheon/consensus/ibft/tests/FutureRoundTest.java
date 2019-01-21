@@ -82,7 +82,7 @@ public class FutureRoundTest {
       futureRoles.getNonProposingPeer(i).injectCommit(futureRoundId, futureBlock.getHash());
     }
 
-    // inject a prepare and a commit from a subsequent round, and ensure nojbh n transmissions are
+    // inject a prepare and a commit from a subsequent round, and ensure no transmissions are
     // created
     subsequentRoles.getNonProposingPeer(1).injectPrepare(subsequentRoundId, futureBlock.getHash());
     subsequentRoles.getNonProposingPeer(1).injectCommit(subsequentRoundId, futureBlock.getHash());
