@@ -138,6 +138,11 @@ public class TestContextBuilder {
     return this;
   }
 
+  public TestContextBuilder useGossip(final boolean useGossip) {
+    this.useGossip = useGossip;
+    return this;
+  }
+
   public TestContext build() {
     final NetworkLayout networkNodes =
         NetworkLayout.createNetworkLayout(validatorCount, indexOfFirstLocallyProposedBlock);
