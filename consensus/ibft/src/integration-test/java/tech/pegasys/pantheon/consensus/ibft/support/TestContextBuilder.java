@@ -24,6 +24,7 @@ import tech.pegasys.pantheon.consensus.common.VoteProposer;
 import tech.pegasys.pantheon.consensus.common.VoteTally;
 import tech.pegasys.pantheon.consensus.common.VoteTallyUpdater;
 import tech.pegasys.pantheon.consensus.ibft.BlockTimer;
+import tech.pegasys.pantheon.consensus.ibft.EventMultiplexer;
 import tech.pegasys.pantheon.consensus.ibft.IbftBlockHashing;
 import tech.pegasys.pantheon.consensus.ibft.IbftBlockInterface;
 import tech.pegasys.pantheon.consensus.ibft.IbftContext;
@@ -76,16 +77,21 @@ import java.util.stream.Collectors;
 
 import com.google.common.collect.Iterables;
 
-public class TestContextFactory {
+public class TestContextBuilder {
 
   private static class ControllerAndState {
 
     private IbftController controller;
     private IbftFinalState finalState;
+    private EventMultiplexer eventMultiplexer;
 
-    public ControllerAndState(final IbftController controller, final IbftFinalState finalState) {
+    public ControllerAndState(
+        final IbftController controller,
+        final IbftFinalState finalState,
+        final EventMultiplexer eventMultiplexer) {
       this.controller = controller;
       this.finalState = finalState;
+      this.eventMultiplexer = eventMultiplexer;
     }
 
     public IbftController getController() {
@@ -95,35 +101,44 @@ public class TestContextFactory {
     public IbftFinalState getFinalState() {
       return finalState;
     }
+
+    public EventMultiplexer getEventMultiplexer() {
+      return eventMultiplexer;
+    }
   }
 
   public static final int EPOCH_LENGTH = 10_000;
   public static final int BLOCK_TIMER_SEC = 3;
   public static final int ROUND_TIMER_SEC = 12;
 
-  public static TestContext createTestEnvWithArbitraryClock(
-      final int validatorCount, final int indexOfFirstLocallyProposedBlock) {
-    return createTestEnvironmentWithoutGossip(
-        validatorCount,
-        indexOfFirstLocallyProposedBlock,
-        Clock.fixed(Instant.MIN, ZoneId.of("UTC")));
+  private Clock clock = Clock.fixed(Instant.MIN, ZoneId.of("UTC"));
+  private IbftEventQueue ibftEventQueue = new IbftEventQueue();
+  private int validatorCount = 4;
+  private int indexOfFirstLocallyProposedBlock = 0; // Meaning first block is from remote peer.
+  private boolean useGossip;
+
+  public TestContextBuilder clock(final Clock clock) {
+    this.clock = clock;
+    return this;
   }
 
-  public static TestContext createTestEnvironmentWithGossip(
-      final int validatorCount, final int indexOfFirstLocallyProposedBlock, final Clock clock) {
-    return createTestEnvironment(validatorCount, indexOfFirstLocallyProposedBlock, clock, true);
+  public TestContextBuilder ibftEventQueue(final IbftEventQueue ibftEventQueue) {
+    this.ibftEventQueue = ibftEventQueue;
+    return this;
   }
 
-  public static TestContext createTestEnvironmentWithoutGossip(
-      final int validatorCount, final int indexOfFirstLocallyProposedBlock, final Clock clock) {
-    return createTestEnvironment(validatorCount, indexOfFirstLocallyProposedBlock, clock, false);
+  public TestContextBuilder validatorCount(final int validatorCount) {
+    this.validatorCount = validatorCount;
+    return this;
   }
 
-  private static TestContext createTestEnvironment(
-      final int validatorCount,
-      final int indexOfFirstLocallyProposedBlock,
-      final Clock clock,
-      final boolean useGossip) {
+  public TestContextBuilder indexOfFirstLocallyProposedBlock(
+      final int indexOfFirstLocallyProposedBlock) {
+    this.indexOfFirstLocallyProposedBlock = indexOfFirstLocallyProposedBlock;
+    return this;
+  }
+
+  public TestContext build() {
     final NetworkLayout networkNodes =
         NetworkLayout.createNetworkLayout(validatorCount, indexOfFirstLocallyProposedBlock);
 
@@ -140,7 +155,8 @@ public class TestContextFactory {
         useGossip ? new IbftGossip(stubbedMulticaster) : mock(IbftGossip.class);
 
     final ControllerAndState controllerAndState =
-        createControllerAndFinalState(blockChain, stubbedMulticaster, nodeKeys, clock, gossiper);
+        createControllerAndFinalState(
+            blockChain, stubbedMulticaster, nodeKeys, clock, ibftEventQueue, gossiper);
 
     // Add each networkNode to the Multicaster (such that each can receive msgs from local node).
     // NOTE: the remotePeers needs to be ordered based on Address (as this is used to determine
@@ -156,7 +172,7 @@ public class TestContextFactory {
                         new ValidatorPeer(
                             nodeParams,
                             new MessageFactory(nodeParams.getNodeKeyPair()),
-                            controllerAndState.getController()),
+                            controllerAndState.getEventMultiplexer()),
                     (u, v) -> {
                       throw new IllegalStateException(String.format("Duplicate key %s", u));
                     },
@@ -168,7 +184,8 @@ public class TestContextFactory {
         remotePeers,
         blockChain,
         controllerAndState.getController(),
-        controllerAndState.getFinalState());
+        controllerAndState.getFinalState(),
+        controllerAndState.getEventMultiplexer());
   }
 
   private static Block createGenesisBlock(final Set<Address> validators) {
@@ -201,6 +218,7 @@ public class TestContextFactory {
       final StubValidatorMulticaster stubbedMulticaster,
       final KeyPair nodeKeys,
       final Clock clock,
+      final IbftEventQueue ibftEventQueue,
       final IbftGossip gossiper) {
 
     final WorldStateArchive worldStateArchive = createInMemoryWorldStateArchive();
@@ -231,8 +249,6 @@ public class TestContextFactory {
     final ProtocolContext<IbftContext> protocolContext =
         new ProtocolContext<>(
             blockChain, worldStateArchive, new IbftContext(voteTally, voteProposer));
-
-    final IbftEventQueue ibftEventQueue = new IbftEventQueue();
 
     final IbftBlockCreatorFactory blockCreatorFactory =
         new IbftBlockCreatorFactory(
@@ -280,8 +296,10 @@ public class TestContextFactory {
                 messageValidatorFactory),
             new HashMap<>(),
             gossiper);
+
+    final EventMultiplexer eventMultiplexer = new EventMultiplexer(ibftController);
     //////////////////////////// END IBFT PantheonController ////////////////////////////
 
-    return new ControllerAndState(ibftController, finalState);
+    return new ControllerAndState(ibftController, finalState, eventMultiplexer);
   }
 }
