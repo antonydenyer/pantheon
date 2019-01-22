@@ -154,14 +154,13 @@ public class TestContextBuilder {
     final KeyPair nodeKeys = networkNodes.getLocalNode().getNodeKeyPair();
 
     // Use a stubbed version of the multicaster, to prevent creating PeerConnections etc.
-    final StubValidatorMulticaster stubbedMulticaster = new StubValidatorMulticaster();
+    final StubValidatorMulticaster multicaster = new StubValidatorMulticaster();
 
-    final IbftGossip gossiper =
-        useGossip ? new IbftGossip(stubbedMulticaster) : mock(IbftGossip.class);
+    final IbftGossip gossiper = useGossip ? new IbftGossip(multicaster) : mock(IbftGossip.class);
 
     final ControllerAndState controllerAndState =
         createControllerAndFinalState(
-            blockChain, stubbedMulticaster, nodeKeys, clock, ibftEventQueue, gossiper);
+            blockChain, multicaster, nodeKeys, clock, ibftEventQueue, gossiper);
 
     // Add each networkNode to the Multicaster (such that each can receive msgs from local node).
     // NOTE: the remotePeers needs to be ordered based on Address (as this is used to determine
@@ -183,7 +182,7 @@ public class TestContextBuilder {
                     },
                     LinkedHashMap::new));
 
-    stubbedMulticaster.addNetworkPeers(remotePeers.values());
+    multicaster.addNetworkPeers(remotePeers.values());
 
     return new TestContext(
         remotePeers,

@@ -13,12 +13,12 @@
 package tech.pegasys.pantheon.consensus.ibft.tests;
 
 import static java.util.Collections.emptyList;
+import static java.util.Collections.singleton;
 import static tech.pegasys.pantheon.consensus.ibft.support.MessageReceptionHelpers.assertPeersContainsReceivedMessages;
+import static tech.pegasys.pantheon.consensus.ibft.support.MessageReceptionHelpers.assertPeersReceivedExactly;
 import static tech.pegasys.pantheon.consensus.ibft.support.MessageReceptionHelpers.assertPeersReceivedNoMessages;
 
 import tech.pegasys.pantheon.consensus.ibft.ConsensusRoundIdentifier;
-import tech.pegasys.pantheon.consensus.ibft.IbftBlockHashing;
-import tech.pegasys.pantheon.consensus.ibft.IbftExtraData;
 import tech.pegasys.pantheon.consensus.ibft.IbftHelpers;
 import tech.pegasys.pantheon.consensus.ibft.ibftevent.NewChainHead;
 import tech.pegasys.pantheon.consensus.ibft.messagedata.ProposalMessageData;
@@ -34,17 +34,13 @@ import tech.pegasys.pantheon.consensus.ibft.support.RoundSpecificNodeRoles;
 import tech.pegasys.pantheon.consensus.ibft.support.TestContext;
 import tech.pegasys.pantheon.consensus.ibft.support.TestContextBuilder;
 import tech.pegasys.pantheon.consensus.ibft.support.ValidatorPeer;
-import tech.pegasys.pantheon.crypto.SECP256K1;
 import tech.pegasys.pantheon.crypto.SECP256K1.KeyPair;
-import tech.pegasys.pantheon.crypto.SECP256K1.Signature;
 import tech.pegasys.pantheon.ethereum.core.Block;
-import tech.pegasys.pantheon.ethereum.core.Hash;
 
 import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneId;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -73,7 +69,6 @@ public class GossipTest {
   private Block block;
   private ValidatorPeer gossiper;
   private MessageFactory msgFactory;
-  private SignedData<ProposalPayload> proposal;
 
   @Before
   public void setup() {
@@ -81,45 +76,43 @@ public class GossipTest {
     block = context.createBlockForProposalFromChainHead(roundId.getRoundNumber(), 30);
     gossiper = roles.getProposer();
     msgFactory = gossiper.getMessageFactory();
-
-    proposal = msgFactory.createSignedProposalPayload(roundId, block);
   }
 
   @Test
   public void gossipMessagesToPeers() {
-    gossiper.injectProposal(roundId, block);
+    assertPeersReceivedNoMessages(roles.getNonProposingPeers());
+    final SignedData<ProposalPayload> proposal = gossiper.injectProposal(roundId, block);
     assertPeersContainsReceivedMessages(roles.getNonProposingPeers(), proposal);
+    final SignedData<PreparePayload> localPrepare =
+        context.getLocalNodeMessageFactory().createSignedPreparePayload(roundId, block.getHash());
+    // Gossiper node will have a prepare message as an effect of the proposal being sent
+    assertPeersReceivedExactly(singleton(gossiper), localPrepare);
 
-    gossiper.injectPrepare(roundId, block.getHash());
-    final SignedData<PreparePayload> prepare =
-        msgFactory.createSignedPreparePayload(roundId, block.getHash());
+    final SignedData<PreparePayload> prepare = gossiper.injectPrepare(roundId, block.getHash());
     assertPeersContainsReceivedMessages(roles.getNonProposingPeers(), prepare);
+    assertPeersReceivedNoMessages(singleton(gossiper));
 
-    gossiper.injectCommit(roundId, block.getHash());
-    final IbftExtraData extraData = IbftExtraData.decode(block.getHeader().getExtraData());
-    final Hash commitHash =
-        IbftBlockHashing.calculateDataHashForCommittedSeal(block.getHeader(), extraData);
-    final Signature commitSeal = SECP256K1.sign(commitHash, gossiper.getNodeKeyPair());
-    final SignedData<CommitPayload> commit =
-        msgFactory.createSignedCommitPayload(roundId, block.getHash(), commitSeal);
+    final SignedData<CommitPayload> commit = gossiper.injectCommit(roundId, block.getHash());
     assertPeersContainsReceivedMessages(roles.getNonProposingPeers(), commit);
+    assertPeersReceivedNoMessages(singleton(gossiper));
 
     final SignedData<RoundChangePayload> roundChange =
         msgFactory.createSignedRoundChangePayload(roundId, Optional.empty());
     final RoundChangeCertificate roundChangeCert =
-        new RoundChangeCertificate(Collections.singleton(roundChange));
-    final SignedData<NewRoundPayload> newRound =
-        msgFactory.createSignedNewRoundPayload(roundId, roundChangeCert, proposal);
-    gossiper.injectNewRound(roundId, roundChangeCert, proposal);
+        new RoundChangeCertificate(singleton(roundChange));
+    SignedData<NewRoundPayload> newRound =
+        gossiper.injectNewRound(roundId, roundChangeCert, proposal);
     assertPeersContainsReceivedMessages(roles.getNonProposingPeers(), newRound);
+    assertPeersReceivedNoMessages(singleton(gossiper));
 
     gossiper.injectRoundChange(roundId, Optional.empty());
     assertPeersContainsReceivedMessages(roles.getNonProposingPeers(), roundChange);
+    assertPeersReceivedNoMessages(singleton(gossiper));
   }
 
   @Test
   public void messageIsOnlyGossipedOnce() {
-    gossiper.injectProposal(roundId, block);
+    final SignedData<ProposalPayload> proposal = gossiper.injectProposal(roundId, block);
     assertPeersContainsReceivedMessages(roles.getNonProposingPeers(), proposal);
 
     gossiper.injectProposal(roundId, block);
@@ -137,7 +130,7 @@ public class GossipTest {
         unknownMsgFactory.createSignedProposalPayload(roundId, block);
 
     gossiper.injectMessage(ProposalMessageData.create(unknownProposal));
-    assertPeersReceivedNoMessages(roles.getNonProposingPeers());
+    assertPeersReceivedNoMessages(roles.getAllPeers());
   }
 
   @Test
@@ -161,16 +154,14 @@ public class GossipTest {
     msgFactory.createSignedProposalPayload(futureRoundId, block);
 
     gossiper.injectProposal(futureRoundId, block);
-    assertPeersReceivedNoMessages(roles.getNonProposingPeers());
+    assertPeersReceivedNoMessages(roles.getAllPeers());
   }
 
   @Test
   public void previousHeightMessageIsNotGossiped() {
-    ConsensusRoundIdentifier futureRoundId = new ConsensusRoundIdentifier(0, 0);
-    msgFactory.createSignedProposalPayload(futureRoundId, block);
-
+    final ConsensusRoundIdentifier futureRoundId = new ConsensusRoundIdentifier(0, 0);
     gossiper.injectProposal(futureRoundId, block);
-    assertPeersReceivedNoMessages(roles.getNonProposingPeers());
+    assertPeersReceivedNoMessages(roles.getAllPeers());
   }
 
   @Test
