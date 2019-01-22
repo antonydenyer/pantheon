@@ -115,7 +115,7 @@ public class TestContextBuilder {
   private IbftEventQueue ibftEventQueue = new IbftEventQueue();
   private int validatorCount = 4;
   private int indexOfFirstLocallyProposedBlock = 0; // Meaning first block is from remote peer.
-  private boolean useGossip;
+  private boolean useGossip = false;
 
   public TestContextBuilder clock(final Clock clock) {
     this.clock = clock;
