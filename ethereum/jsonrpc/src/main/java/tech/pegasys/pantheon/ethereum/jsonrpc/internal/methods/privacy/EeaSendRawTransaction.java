@@ -71,7 +71,7 @@ public class EeaSendRawTransaction implements JsonRpcMethod {
       return new JsonRpcErrorResponse(request.getId(), JsonRpcError.INVALID_PARAMS);
     }
 
-      final Transaction transaction = privateTxHandler.handle(privateTransaction);
+    final Transaction transaction = privateTxHandler.handle(privateTransaction);
 
     final ValidationResult<TransactionInvalidReason> validationResult =
         transactionPool.addLocalTransaction(transaction);

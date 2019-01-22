@@ -13,8 +13,16 @@
 package tech.pegasys.pantheon.ethereum.privacy;
 
 import tech.pegasys.pantheon.ethereum.core.Transaction;
+import tech.pegasys.pantheon.orion.Orion;
 
 public class PrivateTransactionHandler {
+
+  private final Orion orion;
+
+  public PrivateTransactionHandler(final Orion orion){
+    this.orion = orion;
+
+  }
 
   public Transaction handle(final PrivateTransaction privateTransaction) {
     //    send request out to Enclave Client and get encrypted transaction hash (enclave address)
@@ -28,7 +36,9 @@ public class PrivateTransactionHandler {
         privateTransaction.getValue(),
         privateTransaction.getSignature(),
         privateTransaction.getPayload(),
-        privateTransaction.sender,
+        privateTransaction.getSender(),
         privateTransaction.getChainId().getAsInt());
   }
+
+  //Prepare Transaction to send to Orion (JSON) API /sendraw or /send
 }
