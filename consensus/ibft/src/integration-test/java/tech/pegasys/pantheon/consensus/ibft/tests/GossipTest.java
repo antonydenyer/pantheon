@@ -14,7 +14,6 @@ package tech.pegasys.pantheon.consensus.ibft.tests;
 
 import static java.util.Collections.emptyList;
 import static java.util.Collections.singleton;
-import static tech.pegasys.pantheon.consensus.ibft.support.MessageReceptionHelpers.assertPeersContainsReceivedMessages;
 import static tech.pegasys.pantheon.consensus.ibft.support.MessageReceptionHelpers.assertPeersReceivedExactly;
 import static tech.pegasys.pantheon.consensus.ibft.support.MessageReceptionHelpers.assertPeersReceivedNoMessages;
 
@@ -80,20 +79,20 @@ public class GossipTest {
 
   @Test
   public void gossipMessagesToPeers() {
+    SignedData<PreparePayload> localPrepare =
+        context.getLocalNodeMessageFactory().createSignedPreparePayload(roundId, block.getHash());
     assertPeersReceivedNoMessages(roles.getNonProposingPeers());
     final SignedData<ProposalPayload> proposal = gossiper.injectProposal(roundId, block);
-    assertPeersContainsReceivedMessages(roles.getNonProposingPeers(), proposal);
-    final SignedData<PreparePayload> localPrepare =
-        context.getLocalNodeMessageFactory().createSignedPreparePayload(roundId, block.getHash());
     // Gossiper node will have a prepare message as an effect of the proposal being sent
+    assertPeersReceivedExactly(roles.getNonProposingPeers(), proposal, localPrepare);
     assertPeersReceivedExactly(singleton(gossiper), localPrepare);
 
     final SignedData<PreparePayload> prepare = gossiper.injectPrepare(roundId, block.getHash());
-    assertPeersContainsReceivedMessages(roles.getNonProposingPeers(), prepare);
+    assertPeersReceivedExactly(roles.getNonProposingPeers(), prepare);
     assertPeersReceivedNoMessages(singleton(gossiper));
 
     final SignedData<CommitPayload> commit = gossiper.injectCommit(roundId, block.getHash());
-    assertPeersContainsReceivedMessages(roles.getNonProposingPeers(), commit);
+    assertPeersReceivedExactly(roles.getNonProposingPeers(), commit);
     assertPeersReceivedNoMessages(singleton(gossiper));
 
     final SignedData<RoundChangePayload> roundChange =
@@ -102,23 +101,23 @@ public class GossipTest {
         new RoundChangeCertificate(singleton(roundChange));
     SignedData<NewRoundPayload> newRound =
         gossiper.injectNewRound(roundId, roundChangeCert, proposal);
-    assertPeersContainsReceivedMessages(roles.getNonProposingPeers(), newRound);
+    assertPeersReceivedExactly(roles.getNonProposingPeers(), newRound);
     assertPeersReceivedNoMessages(singleton(gossiper));
 
     gossiper.injectRoundChange(roundId, Optional.empty());
-    assertPeersContainsReceivedMessages(roles.getNonProposingPeers(), roundChange);
+    assertPeersReceivedExactly(roles.getNonProposingPeers(), roundChange);
     assertPeersReceivedNoMessages(singleton(gossiper));
   }
 
   @Test
   public void messageIsOnlyGossipedOnce() {
-    final SignedData<ProposalPayload> proposal = gossiper.injectProposal(roundId, block);
-    assertPeersContainsReceivedMessages(roles.getNonProposingPeers(), proposal);
+    final SignedData<PreparePayload> prepare = gossiper.injectPrepare(roundId, block.getHash());
+    assertPeersReceivedExactly(roles.getNonProposingPeers(), prepare);
 
-    gossiper.injectProposal(roundId, block);
+    gossiper.injectPrepare(roundId, block.getHash());
     assertPeersReceivedNoMessages(roles.getNonProposingPeers());
 
-    gossiper.injectProposal(roundId, block);
+    gossiper.injectPrepare(roundId, block.getHash());
     assertPeersReceivedNoMessages(roles.getNonProposingPeers());
   }
 
@@ -144,7 +143,7 @@ public class GossipTest {
 
     final List<ValidatorPeer> validators = new ArrayList<>(roles.getNonProposingPeers());
     validators.remove(msgCreator);
-    assertPeersContainsReceivedMessages(validators, proposalFromPeer);
+    assertPeersReceivedExactly(validators, proposalFromPeer);
     assertPeersReceivedNoMessages(ImmutableList.of(roles.getProposer(), msgCreator));
   }
 
@@ -176,10 +175,8 @@ public class GossipTest {
                 .collect(Collectors.toList()));
 
     ConsensusRoundIdentifier futureRoundId = new ConsensusRoundIdentifier(2, 0);
-    SignedData<ProposalPayload> futureProposal =
-        msgFactory.createSignedProposalPayload(futureRoundId, block);
-
-    gossiper.injectProposal(futureRoundId, block);
+    SignedData<PreparePayload> futurePrepare =
+        gossiper.injectPrepare(futureRoundId, block.getHash());
     assertPeersReceivedNoMessages(roles.getNonProposingPeers());
 
     // add block to chain so we can move to next block height
@@ -188,6 +185,6 @@ public class GossipTest {
         .getController()
         .handleNewBlockEvent(new NewChainHead(signedCurrentHeightBlock.getHeader()));
 
-    assertPeersContainsReceivedMessages(roles.getNonProposingPeers(), futureProposal);
+    assertPeersReceivedExactly(roles.getNonProposingPeers(), futurePrepare);
   }
 }

@@ -28,7 +28,6 @@ import tech.pegasys.pantheon.ethereum.p2p.api.MessageData;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
-import java.util.stream.Collectors;
 
 public class MessageReceptionHelpers {
 
@@ -56,33 +55,12 @@ public class MessageReceptionHelpers {
     allPeers.forEach(ValidatorPeer::clearReceivedMessages);
   }
 
-  @SafeVarargs
-  public static void assertPeersContainsReceivedMessages(
-      final Collection<ValidatorPeer> allPeers, final SignedData<? extends Payload>... msgs) {
-    final List<SignedData<? extends Payload>> msgList = Arrays.asList(msgs);
-    allPeers.forEach(
-        node -> {
-          final List<SignedData<?>> rxMsgs =
-              node.getReceivedMessages()
-                  .stream()
-                  .map(MessageReceptionHelpers::payloadFromMessageData)
-                  .collect(Collectors.toList());
-          assertThat(rxMsgs).containsAll(msgList);
-        });
-    allPeers.forEach(ValidatorPeer::clearReceivedMessages);
-  }
-
   public static void messageMatchesExpected(
       final MessageData actual, final SignedData<? extends Payload> signedExpectedPayload) {
-    final SignedData<?> actualSignedPayload = payloadFromMessageData(actual);
-    assertThat(signedExpectedPayload)
-        .isEqualToComparingFieldByFieldRecursively(actualSignedPayload);
-  }
-
-  private static SignedData<?> payloadFromMessageData(final MessageData actual) {
+    final Payload expectedPayload = signedExpectedPayload.getPayload();
     SignedData<?> actualSignedPayload = null;
 
-    switch (actual.getCode()) {
+    switch (expectedPayload.getMessageType()) {
       case IbftV2.PROPOSAL:
         actualSignedPayload = ProposalMessageData.fromMessageData(actual).decode();
         break;
@@ -102,6 +80,7 @@ public class MessageReceptionHelpers {
         fail("Illegal IBFTV2 message type.");
         break;
     }
-    return actualSignedPayload;
+    assertThat(signedExpectedPayload)
+        .isEqualToComparingFieldByFieldRecursively(actualSignedPayload);
   }
 }
