@@ -12,7 +12,9 @@
  */
 package tech.pegasys.pantheon.ethereum.privacy;
 
+import tech.pegasys.pantheon.ethereum.core.Address;
 import tech.pegasys.pantheon.ethereum.core.Transaction;
+import tech.pegasys.pantheon.util.bytes.BytesValue;
 
 public class PrivateTransactionHandler {
 
@@ -28,7 +30,7 @@ public class PrivateTransactionHandler {
         privateTransaction.getValue(),
         privateTransaction.getSignature(),
         privateTransaction.getPayload(),
-        privateTransaction.sender,
-        privateTransaction.getChainId().getAsInt());
+        Address.wrap(BytesValue.fromHexString("0x8411b12666f68ef74cace3615c9d5a377729d03f")),
+        0);
   }
 }
