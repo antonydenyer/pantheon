@@ -28,6 +28,7 @@ import tech.pegasys.pantheon.ethereum.jsonrpc.internal.response.JsonRpcResponse;
 import tech.pegasys.pantheon.ethereum.jsonrpc.internal.response.JsonRpcSuccessResponse;
 import tech.pegasys.pantheon.ethereum.mainnet.TransactionValidator.TransactionInvalidReason;
 import tech.pegasys.pantheon.ethereum.mainnet.ValidationResult;
+import tech.pegasys.pantheon.ethereum.privacy.PrivateTransactionHandler;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -38,17 +39,29 @@ import org.mockito.junit.MockitoJUnitRunner;
 @RunWith(MockitoJUnitRunner.class)
 public class EeaSendRawTransactionTest {
 
-  private static final String VALID_TRANSACTION =
-      "0xf86d0485174876e800830222e0945aae326516b4f8fe08074b7e972e40a713048d62880de0b6b3a7640000801ba05d4e7998757264daab67df2ce6f7e7a0ae36910778a406ca73898c9899a32b9ea0674700d5c3d1d27f2e6b4469957dfd1a1c49bf92383d80717afc84eb05695d5b";
+  private static final String VALID_PRIVATE_TRANSACTION_RLP =
+      "0xf90113800182520894095e7baea6a6c7c4c2dfeb977efac326af552d87"
+          + "a0ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+          + "ffff801ba048b55bfa915ac795c431978d8a6a992b628d557da5ff759b307d"
+          + "495a36649353a01fffd310ac743f371de3b9f7f9cb56c0b28ad43601b4ab94"
+          + "9f53faa07bd2c804ac41316156744d784c4355486d425648586f5a7a7a4267"
+          + "5062572f776a3561784470573958386c393153476f3df85aac41316156744d"
+          + "784c4355486d425648586f5a7a7a42675062572f776a356178447057395838"
+          + "6c393153476f3dac4b6f32625671442b6e4e6c4e594c35454537793349644f"
+          + "6e766966746a69697a706a52742b4854754642733d8a726573747269637465"
+          + "64";
+
   @Mock private TransactionPool transactionPool;
 
   @Mock private JsonRpcParameter parameter;
 
-  private EeaSendRawTransaction method;
+  @Mock private EeaSendRawTransaction method;
+
+  @Mock private PrivateTransactionHandler privateTxHandler;
 
   @Before
   public void before() {
-    method = new EeaSendRawTransaction(transactionPool, parameter);
+    method = new EeaSendRawTransaction(privateTxHandler, transactionPool, parameter);
   }
 
   @Test
@@ -82,12 +95,14 @@ public class EeaSendRawTransactionTest {
 
   @Test
   public void validTransactionIsSentToTransactionPool() {
-    when(parameter.required(any(Object[].class), anyInt(), any())).thenReturn(VALID_TRANSACTION);
+    when(parameter.required(any(Object[].class), anyInt(), any()))
+        .thenReturn(VALID_PRIVATE_TRANSACTION_RLP);
     when(transactionPool.addLocalTransaction(any(Transaction.class)))
         .thenReturn(ValidationResult.valid());
 
     final JsonRpcRequest request =
-        new JsonRpcRequest("2.0", "eea_sendRawTransaction", new String[] {VALID_TRANSACTION});
+        new JsonRpcRequest(
+            "2.0", "eea_sendRawTransaction", new String[] {VALID_PRIVATE_TRANSACTION_RLP});
 
     final JsonRpcResponse expectedResponse =
         new JsonRpcSuccessResponse(
@@ -145,12 +160,14 @@ public class EeaSendRawTransactionTest {
 
   private void verifyErrorForInvalidTransaction(
       final TransactionInvalidReason transactionInvalidReason, final JsonRpcError expectedError) {
-    when(parameter.required(any(Object[].class), anyInt(), any())).thenReturn(VALID_TRANSACTION);
+    when(parameter.required(any(Object[].class), anyInt(), any()))
+        .thenReturn(VALID_PRIVATE_TRANSACTION_RLP);
     when(transactionPool.addLocalTransaction(any(Transaction.class)))
         .thenReturn(ValidationResult.invalid(transactionInvalidReason));
 
     final JsonRpcRequest request =
-        new JsonRpcRequest("2.0", "eea_sendRawTransaction", new String[] {VALID_TRANSACTION});
+        new JsonRpcRequest(
+            "2.0", "eea_sendRawTransaction", new String[] {VALID_PRIVATE_TRANSACTION_RLP});
 
     final JsonRpcResponse expectedResponse =
         new JsonRpcErrorResponse(request.getId(), expectedError);
