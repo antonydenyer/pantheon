@@ -19,9 +19,8 @@ public class PrivateTransactionHandler {
 
   private final Orion orion;
 
-  public PrivateTransactionHandler(final Orion orion){
+  public PrivateTransactionHandler(final Orion orion) {
     this.orion = orion;
-
   }
 
   public Transaction handle(final PrivateTransaction privateTransaction) {
@@ -40,5 +39,5 @@ public class PrivateTransactionHandler {
         privateTransaction.getChainId().getAsInt());
   }
 
-  //Prepare Transaction to send to Orion (JSON) API /sendraw or /send
+  // Prepare Transaction to send to Orion (JSON) API /sendraw or /send
 }
