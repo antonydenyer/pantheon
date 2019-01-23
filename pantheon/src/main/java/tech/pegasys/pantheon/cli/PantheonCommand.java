@@ -557,7 +557,8 @@ public class PantheonCommand implements DefaultCommandValues, Runnable {
         jsonRpcConfiguration(),
         webSocketConfiguration(),
         metricsConfiguration(),
-        permissioningConfiguration);
+        permissioningConfiguration,
+        orionConfiguration());
   }
 
   private void ensureAllBootnodesAreInWhitelist(
@@ -678,7 +679,8 @@ public class PantheonCommand implements DefaultCommandValues, Runnable {
       final JsonRpcConfiguration jsonRpcConfiguration,
       final WebSocketConfiguration webSocketConfiguration,
       final MetricsConfiguration metricsConfiguration,
-      final PermissioningConfiguration permissioningConfiguration) {
+      final PermissioningConfiguration permissioningConfiguration,
+      final PrivacyParameters privacyParameters) {
 
     checkNotNull(runnerBuilder);
 
@@ -700,6 +702,7 @@ public class PantheonCommand implements DefaultCommandValues, Runnable {
             .metricsSystem(metricsSystem)
             .metricsConfiguration(metricsConfiguration)
             .permissioningConfiguration(permissioningConfiguration)
+            .privacyParameters(privacyParameters)
             .build();
 
     addShutdownHook(runner);

@@ -17,6 +17,7 @@ import tech.pegasys.pantheon.crypto.SECP256K1.KeyPair;
 import tech.pegasys.pantheon.ethereum.ProtocolContext;
 import tech.pegasys.pantheon.ethereum.blockcreation.MiningCoordinator;
 import tech.pegasys.pantheon.ethereum.chain.Blockchain;
+import tech.pegasys.pantheon.ethereum.core.PrivacyParameters;
 import tech.pegasys.pantheon.ethereum.core.Synchronizer;
 import tech.pegasys.pantheon.ethereum.core.TransactionPool;
 import tech.pegasys.pantheon.ethereum.jsonrpc.JsonRpcConfiguration;
@@ -59,6 +60,7 @@ import tech.pegasys.pantheon.ethereum.worldstate.WorldStateArchive;
 import tech.pegasys.pantheon.metrics.MetricsSystem;
 import tech.pegasys.pantheon.metrics.prometheus.MetricsConfiguration;
 import tech.pegasys.pantheon.metrics.prometheus.MetricsHttpService;
+import tech.pegasys.pantheon.orion.Orion;
 import tech.pegasys.pantheon.util.bytes.BytesValue;
 
 import java.nio.file.Path;
@@ -89,6 +91,7 @@ public class RunnerBuilder {
   private MetricsConfiguration metricsConfiguration;
   private MetricsSystem metricsSystem;
   private PermissioningConfiguration permissioningConfiguration;
+  private PrivacyParameters privacyParameters;
 
   public RunnerBuilder vertx(final Vertx vertx) {
     this.vertx = vertx;
@@ -163,6 +166,11 @@ public class RunnerBuilder {
 
   public RunnerBuilder metricsSystem(final MetricsSystem metricsSystem) {
     this.metricsSystem = metricsSystem;
+    return this;
+  }
+
+  public RunnerBuilder privacyParameters(final PrivacyParameters privacyParameters) {
+    this.privacyParameters = privacyParameters;
     return this;
   }
 
@@ -249,7 +257,8 @@ public class RunnerBuilder {
 
     final FilterManager filterManager = createFilterManager(vertx, context, transactionPool);
 
-    final PrivateTransactionHandler privateTxHandler = new PrivateTransactionHandler();
+    final PrivateTransactionHandler privateTxHandler =
+        new PrivateTransactionHandler(new Orion(privacyParameters.getUrl()));
 
     Optional<JsonRpcHttpService> jsonRpcHttpService = Optional.empty();
     if (jsonRpcConfiguration.isEnabled()) {
