@@ -17,14 +17,12 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 import tech.pegasys.orion.testutil.OrionTestHarness;
-import tech.pegasys.pantheon.ethereum.core.PrivacyParameters;
-import tech.pegasys.pantheon.orion.types.ReceiveContent;
+import tech.pegasys.pantheon.orion.types.ReceiveRequest;
 import tech.pegasys.pantheon.orion.types.ReceiveResponse;
-import tech.pegasys.pantheon.orion.types.SendContent;
+import tech.pegasys.pantheon.orion.types.SendRequest;
 import tech.pegasys.pantheon.orion.types.SendResponse;
 
 import java.io.IOException;
-import java.net.URI;
 import java.util.List;
 
 import org.junit.AfterClass;
@@ -65,10 +63,10 @@ public class OrionTest {
   public void testSendAndReceive() throws IOException {
     List<String> publicKeys = testHarness.getPublicKeys();
 
-    SendContent sc = new SendContent(PAYLOAD, publicKeys.get(0), new String[] {publicKeys.get(1)});
+    SendRequest sc = new SendRequest(PAYLOAD, publicKeys.get(0), new String[] {publicKeys.get(1)});
     SendResponse sr = orion.send(sc);
 
-    ReceiveContent rc = new ReceiveContent(sr.getKey(), publicKeys.get(1));
+    ReceiveRequest rc = new ReceiveRequest(sr.getKey(), publicKeys.get(1));
     ReceiveResponse rr = orion.receive(rc);
 
     assertEquals(PAYLOAD, new String(rr.getPayload(), UTF_8));
