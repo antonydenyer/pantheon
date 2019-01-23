@@ -17,12 +17,14 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 import tech.pegasys.orion.testutil.OrionTestHarness;
+import tech.pegasys.pantheon.ethereum.core.PrivacyParameters;
 import tech.pegasys.pantheon.orion.types.ReceiveContent;
 import tech.pegasys.pantheon.orion.types.ReceiveResponse;
 import tech.pegasys.pantheon.orion.types.SendContent;
 import tech.pegasys.pantheon.orion.types.SendResponse;
 
 import java.io.IOException;
+import java.net.URI;
 import java.util.List;
 
 import org.junit.AfterClass;
@@ -46,10 +48,7 @@ public class OrionTest {
 
     testHarness = OrionTestHarness.create(folder.newFolder().toPath());
 
-    OrionConfiguration orionConfiguration = OrionConfiguration.createDefault();
-    orionConfiguration.setUrl(testHarness.getConfig().clientUrl().toString());
-
-    orion = new Orion(orionConfiguration);
+    orion = new Orion(testHarness.getConfig().clientUrl().toString());
   }
 
   @AfterClass
@@ -77,10 +76,7 @@ public class OrionTest {
 
   @Test(expected = IOException.class)
   public void whenUpCheckFailsThrows() throws IOException {
-    OrionConfiguration configuration = OrionConfiguration.createDefault();
-    configuration.setUrl("http:");
-
-    Orion broken = new Orion(configuration);
+    Orion broken = new Orion("http:");
 
     broken.upCheck();
   }

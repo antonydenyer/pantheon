@@ -36,8 +36,8 @@ public class Orion {
   private String url;
   private OkHttpClient client;
 
-  public Orion(final OrionConfiguration orionConfiguration) {
-    this.url = orionConfiguration.getUrl();
+  public Orion(final String orionUri) {
+    this.url = orionUri;
     this.client = new OkHttpClient();
   }
 
