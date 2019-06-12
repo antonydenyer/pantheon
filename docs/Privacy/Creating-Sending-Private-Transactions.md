@@ -3,8 +3,8 @@ description: Creating and sending private transactions
 
 # Creating and Sending Private Transactions 
 
-The [EEA JavaScript library](https://github.com/PegaSysEng/eeajs) is provided to create and send signed 
-RLP-encoded private transactions. 
+The [web3.js-eea client library](https://github.com/PegaSysEng/eeajs) is provided to create and send signed 
+RLP-encoded private transactions using JSON RPC. 
 
 !!! note
     Private transactions either deploy contracts or call contract functions. 
@@ -106,4 +106,37 @@ To use the examples provided in EEA JS library with [your privacy network](Confi
 
 
    
-   
+## Usage
+
+First, you need to get [web3.js into your project] https://web3js.readthedocs.io/en/1.0/getting-started.html#getting-started. 
+
+!!! note
+    web3-eea only currently supports http. 
+
+web3-eea adds an additional property to your web3 instance by monkey patching web3. To get started first initialize the `EEAClient`.
+
+```js
+const EEAClient = require("web3-eea");
+
+const web3 = new EEAClient(new Web3("http://pantheonNode1Url", <chain_id>);
+
+```
+
+### Deploying a contract with sendRawTransaction
+
+To deploy a private contract, you first need to get a contract binary. The easiest way is to use [Solidity](https://solidity.readthedocs.io/en/develop/using-the-compiler.html)
+
+Once you have your contract binary you can deploy it: 
+
+```js
+  const contractOptions = {
+    data: `0x123`, // contract binary
+    privateFrom: "orionNode1PublicKey",
+    privateFor: ["orionNode3PublicKey"],
+    privateKey: "pantheonNode1PrivateKey"
+  };
+  return web3.eea.sendRawTransaction(contractOptions);
+
+  ```
+
+This will return a promise with the transaction hash. You can use this to call `web3.eea.getTransactionReceipt(txHash)`
